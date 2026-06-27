@@ -1,0 +1,32 @@
+name: Update lotto numbers
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 매주 토요일 밤 10:30(KST)
+    - cron: "30 13 * * 6"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Update lotto data
+        run: python scripts/update_lotto.py
+
+      - name: Commit updated data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update lotto numbers"
+          file_pattern: data/lotto_numbers.json
