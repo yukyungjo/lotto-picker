@@ -7,7 +7,15 @@ API = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo="
 OUT = Path("data/lotto_numbers.json")
 
 def fetch_round(round_no):
-    with urllib.request.urlopen(API + str(round_no), timeout=15) as res:
+    req = urllib.request.Request(
+        API + str(round_no),
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json,text/plain,*/*"
+        }
+    )
+
+    with urllib.request.urlopen(req, timeout=8) as res:
         data = json.loads(res.read().decode("utf-8"))
 
     if data.get("returnValue") != "success":
@@ -36,26 +44,31 @@ def main():
     latest = None
     guess = latest_guess()
 
-    for n in range(guess + 3, max(1, guess - 20), -1):
+    print("guess round:", guess)
+
+    for n in range(guess + 10, 1, -1):
         try:
-            latest = fetch_round(n)
-            if latest:
+            item = fetch_round(n)
+            if item:
+                latest = item
+                print("latest found:", n)
                 break
-        except Exception:
-            pass
+        except Exception as e:
+            print("skip", n, str(e))
 
     if not latest:
         raise RuntimeError("최신 로또 회차를 찾지 못했습니다.")
 
     rounds = []
 
-    for n in range(latest["round"], max(0, latest["round"] - 60), -1):
+    for n in range(latest["round"], max(0, latest["round"] - 30), -1):
         try:
             item = fetch_round(n)
             if item:
                 rounds.append(item)
-        except Exception:
-            continue
+                print("saved", n)
+        except Exception as e:
+            print("failed", n, str(e))
 
     payload = {
         "updated_at": datetime.now(timezone(timedelta(hours=9))).isoformat(),
